@@ -1,43 +1,48 @@
 #!/usr/bin/env python3
 
-import irc
+# import irc
 import random
 
 
-def add_words(cache, words):
-    for i, word in enumerate(words):
-        try:
-            first, second, third = words[i], words[i + 1], words[i + 2]
-        except IndexError:
-            break
-        key = (first, second)
-        if key not in cache:
-            cache[key] = []
-        cache[key].append(third)
+class Markov:
 
+    def __init__(self):
+        self.cache = dict()
 
-def generate_sentence(cache):
-    key = random.choice([key for key in cache.keys()])
+    def add_words(self, words):
+        for i, word in enumerate(words):
+            try:
+                first, second, third = words[i], words[i + 1], words[i + 2]
+            except IndexError:
+                break
+            key = (first, second)
+            if key not in self.cache:
+                self.cache[key] = []
+            self.cache[key].append(third)
 
-    sentence = list()
-    first, second = key
-    sentence.extend(key)
+    def generate_sentence(self):
+        key = random.choice([key for key in self.cache.keys()])
 
-    while key in cache:
-        third = random.choice(cache[key])
-        sentence.append(third)
-        key = (second, third)
-        second = third
+        sentence = list()
+        first, second = key
+        sentence.extend(key)
 
-    return ' '.join(sentence)
+        while key in self.cache:
+            third = random.choice(self.cache[key])
+            sentence.append(third)
+            key = (second, third)
+            second = third
+
+        return ' '.join(sentence)
 
 
 def main():
-    cache = dict()
+    m = Markov()
+
     while True:
         words = input('>').split()
-        add_words(cache, words)
-        print(generate_sentence(cache))
+        m.add_words(words)
+        print(m.generate_sentence())
 
 if __name__ == '__main__':
     main()
