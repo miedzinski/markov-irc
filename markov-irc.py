@@ -1,13 +1,24 @@
 #!/usr/bin/env python3
 
-# import irc
+import irc.bot
+import pickle
 import random
+import time
+
+DB_PATH = 'db'
+HOST = 'irc.freenode.net'
+PORT = 6667
+NICK = ''
+REALNAME = ''
+CHANNEL = '#'
+CHATTINES = 0.05  # chance of bot talking, 0 - 1.00
 
 
 class Markov:
 
     def __init__(self):
-        self.cache = dict()
+        with open(DB_PATH, 'rb') as f:
+            self.cache = pickle.load(f)
 
     def add_words(self, words):
         for i, word in enumerate(words):
@@ -19,6 +30,11 @@ class Markov:
             if key not in self.cache:
                 self.cache[key] = []
             self.cache[key].append(third)
+        self.dump_db()
+
+    def dump_db(self):
+        with open(DB_PATH, 'wb') as f:
+            pickle.dump(self.cache, f)
 
     def generate_sentence(self):
         key = random.choice([key for key in self.cache.keys()])
@@ -36,13 +52,38 @@ class Markov:
         return ' '.join(sentence)
 
 
-def main():
-    m = Markov()
+class MarkovBot(irc.bot.SingleServerIRCBot):
 
-    while True:
-        words = input('>').split()
-        m.add_words(words)
-        print(m.generate_sentence())
+    def __init__(self, markov):
+        irc.client.ServerConnection.buffer_class.errors = 'replace'
+        irc.bot.SingleServerIRCBot.__init__(self,
+                                            [(HOST, PORT)],
+                                            NICK,
+                                            REALNAME)
+        self.markov = markov
+        self.connection.execute_every(60, self.say)
+
+    def on_welcome(self, c, e):
+        c.join(CHANNEL)
+
+    def on_kick(self, c, e):
+        time.sleep(3)
+        c.join(e.target)
+
+    def on_pubmsg(self, c, e):
+        self.markov.add_words(e.arguments[0].split())
+        if c.nickname in e.arguments[0]:
+            c.privmsg(e.target, self.markov.generate_sentence())
+
+    def say(self):
+        if random.random() <= CHATTINES:
+            self.connection.privmsg(CHANNEL, self.markov.generate_sentence())
+
+
+def main():
+    mc = Markov()
+    bot = MarkovBot(mc)
+    bot.start()
 
 if __name__ == '__main__':
     main()
