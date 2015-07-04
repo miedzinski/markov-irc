@@ -12,6 +12,7 @@ NICK = ''
 REALNAME = ''
 CHANNEL = '#'
 CHATTINES = 0.05  # chance of bot talking, 0 - 1.00
+DELAY = 299  # frequency of how often bot has a chance to randomly speak
 
 
 class Markov:
@@ -21,6 +22,7 @@ class Markov:
             self.cache = pickle.load(f)
 
     def add_words(self, words):
+        words.append('\n')
         for i, word in enumerate(words):
             try:
                 first, second, third = words[i], words[i + 1], words[i + 2]
@@ -37,7 +39,8 @@ class Markov:
             pickle.dump(self.cache, f)
 
     def generate_sentence(self):
-        key = random.choice([key for key in self.cache.keys()])
+        key = random.choice([key for key in self.cache.keys()
+                             if '\n' not in key])
 
         sentence = list()
         first, second = key
@@ -45,9 +48,10 @@ class Markov:
 
         while key in self.cache:
             third = random.choice(self.cache[key])
-            sentence.append(third)
             key = (second, third)
             second = third
+            if third != '\n':
+                sentence.append(third)
 
         return ' '.join(sentence)
 
@@ -61,7 +65,7 @@ class MarkovBot(irc.bot.SingleServerIRCBot):
                                             NICK,
                                             REALNAME)
         self.markov = markov
-        self.connection.execute_every(60, self.say)
+        self.connection.execute_every(DELAY, self.say)
 
     def on_welcome(self, c, e):
         c.join(CHANNEL)
@@ -76,7 +80,7 @@ class MarkovBot(irc.bot.SingleServerIRCBot):
             c.privmsg(e.target, self.markov.generate_sentence())
 
     def say(self):
-        if random.random() <= CHATTINES:
+        if self.connection.connected and random.random() <= CHATTINES:
             self.connection.privmsg(CHANNEL, self.markov.generate_sentence())
 
 
