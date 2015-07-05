@@ -32,7 +32,6 @@ class Markov:
             if key not in self.cache:
                 self.cache[key] = []
             self.cache[key].append(third)
-        self.dump_db()
 
     def dump_db(self):
         with open(DB_PATH, 'wb') as f:
@@ -76,6 +75,7 @@ class MarkovBot(irc.bot.SingleServerIRCBot):
 
     def on_pubmsg(self, c, e):
         self.markov.add_words(e.arguments[0].split())
+        self.markov.dump_db()
         if c.nickname in e.arguments[0]:
             c.privmsg(e.target, self.markov.generate_sentence())
 
