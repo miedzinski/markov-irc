@@ -13,6 +13,7 @@ REALNAME = ''
 CHANNEL = '#'
 CHATTINES = 0.05  # chance of bot talking, 0 - 1.00
 DELAY = 299  # frequency of how often bot has a chance to randomly speak
+BLACKLIST = []  # nicknames to ignore
 
 
 class Markov:
@@ -74,8 +75,9 @@ class MarkovBot(irc.bot.SingleServerIRCBot):
         c.join(e.target)
 
     def on_pubmsg(self, c, e):
-        self.markov.add_words(e.arguments[0].split())
-        self.markov.dump_db()
+        if e.source.nick not in BLACKLIST:
+            self.markov.add_words(e.arguments[0].split())
+            self.markov.dump_db()
         if c.nickname in e.arguments[0]:
             c.privmsg(e.target, self.markov.generate_sentence())
 
