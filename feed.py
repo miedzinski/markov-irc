@@ -15,7 +15,7 @@ def main():
 
     mc = markov.Markov(config['redis'])
 
-    with open(sys.argv[1], 'r') as log:
+    with open(sys.argv[2], 'r') as log:
         for line in log:
             mc.add_words(line.split())
 
