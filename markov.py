@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 
-import configparser
-import irc.bot
 import random
 import redis
-import sys
-import time
 
 
 class Markov:
@@ -26,8 +22,8 @@ class Markov:
             key = ' '.join(key)
             self.client.zincrby(key, completion)
 
-    def generate_sentence(self):
-        key = self.client.randomkey().decode()
+    def _generate_sentence(self, start):
+        key = start
         sentence = [key]
 
         while self.client.exists(key):
@@ -42,48 +38,29 @@ class Markov:
 
         return ' '.join(sentence)
 
+    def generate_random_sentence(self):
+        try:
+            key = self.client.randomkey().decode()
+            return self._generate_sentence(key)
+        except AttributeError:
+            return ''
 
-class MarkovBot(irc.bot.SingleServerIRCBot):
+    def generate_relevant_sentence(self, words):
+        client = self.client
+        random.shuffle(words)
 
-    def __init__(self, markov, config):
-        irc.client.ServerConnection.buffer_class.errors = 'replace'
-        irc.bot.SingleServerIRCBot.__init__(self,
-                                            [(config['host'],
-                                              int(config['port']))],
-                                            config['nick'],
-                                            config['realname'])
-        self.markov = markov
-        self.channel = config['channel']
-        self.chattines = float(config['chattines'])
-        self.blacklist = config['blacklist'].split(',')
+        keys = []
 
-    def on_welcome(self, c, e):
-        c.join(self.channel)
+        for word in words:
+            keys += [key.decode() for key in client.keys('{} *'.format(word))]
+            keys += [key.decode() for key in client.keys('* {}'.format(word))]
 
-    def on_kick(self, c, e):
-        time.sleep(3)
-        c.join(e.target)
+            if keys:
+                break
+        else:
+            try:
+                keys.append(client.randomkey().decode())
+            except AttributeError:
+                return ''
 
-    def on_pubmsg(self, c, e):
-        if e.source.nick not in self.blacklist:
-            self.markov.add_words(e.arguments[0].split())
-        if c.nickname in e.arguments[0]:
-            c.privmsg(e.target, self.markov.generate_sentence())
-
-    def say(self):
-        connection = self.connection
-        if connection.connected and random.random() <= self.chattines:
-            connection.privmsg(self.channel, self.markov.generate_sentence())
-
-
-def main():
-    if len(sys.argv) != 2:
-        sys.exit('usage: python3 {} <config-file>'.format(sys.argv[0]))
-    config = configparser.ConfigParser()
-    config.read(sys.argv[1])
-    mc = Markov(config['redis'])
-    bot = MarkovBot(mc, config['irc'])
-    bot.start()
-
-if __name__ == '__main__':
-    main()
+        return self._generate_sentence(random.choice(keys))
