@@ -2,6 +2,7 @@ import configparser
 import irc.bot
 import markov
 import time
+import random
 import sys
 
 
@@ -39,6 +40,8 @@ class MarkovBot(irc.bot.SingleServerIRCBot):
             words = msg.split()
             if words[0].startswith(c.nickname):
                 del words[0]
+            c.privmsg(e.target, self.markov.generate_relevant_sentence(words))
+        elif random.random() <= self.chattines:
             c.privmsg(e.target, self.markov.generate_relevant_sentence(words))
 
 
