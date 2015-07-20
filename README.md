@@ -11,7 +11,7 @@ Requires Python 3 and Redis server.
 	$ source venv/bin/activate
 	$ git clone https://github.com/miedzinski/markov-irc.git
 	$ cd markov-irc
-	$ pip install requirements.txt
+	$ pip install -r requirements.txt
 
 Edit config.ini.
 
