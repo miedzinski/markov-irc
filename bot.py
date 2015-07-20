@@ -30,18 +30,16 @@ class MarkovBot(irc.bot.SingleServerIRCBot):
 
     def on_pubmsg(self, c, e):
         msg = e.arguments[0]
+        words = msg.split()
 
         if e.source.nick not in self.blacklist:
             hilighted = msg.startswith(c.nickname)
             if not hilighted or (hilighted and not self.hilight):
-                self.markov.add_words(msg.split())
+                self.markov.add_words(words)
 
-        if c.nickname in msg:
-            words = msg.split()
+        if c.nickname in msg or random.random() <= self.chattines:
             if words[0].startswith(c.nickname):
                 del words[0]
-            c.privmsg(e.target, self.markov.generate_relevant_sentence(words))
-        elif random.random() <= self.chattines:
             c.privmsg(e.target, self.markov.generate_relevant_sentence(words))
 
 
